@@ -56,7 +56,7 @@ jobs:
         run: tox -c ${{ matrix.part }} -e pep8
 
       - name: Run unit tests
-        run: tox -c ${{ matrix.part }} -e py3
+        run: tox -c ${{ matrix.part }} -e py3 --workdir ./${{ matrix.part }}
 
       - name: Setup LXD
         uses: canonical/setup-lxd@v0.1.1
