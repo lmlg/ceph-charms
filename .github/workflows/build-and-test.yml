@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get -qq install libxslt-dev libxml2-dev python3-lxml
-          python3 -m pip install tox
+          python3 -m pip install "tox<4"
 
       - name: Run linters
         run: tox -c ${{ matrix.part }} -e pep8
