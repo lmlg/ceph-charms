@@ -22,8 +22,8 @@ jobs:
           components=()
           # Retrieve components with a 'tox.ini' file.
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            component=$(echo "$file" | cut -d "/" -f2)
-            if [[ -f "/$component/tox.ini" ]]; then
+            component=$(echo "./$file" | cut -d "/" -f2)
+            if [[ -f "./$component/tox.ini" ]]; then
               components="$components /$component"
             fi
           done
