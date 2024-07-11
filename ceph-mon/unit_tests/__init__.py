@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import sys
 
 from unittest import mock
 
 
-sys.path.append('hooks')
-sys.path.append('lib')
-sys.path.append('unit_tests')
-sys.path.append('actions')
-sys.path.append('src')
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for path in ('hooks', 'lib', 'unit_tests', 'actions', 'src'):
+    sys.path.append(os.path.join(root_dir, path))
 
 
 # Patch out lsb_release() and get_platform() as unit tests should be fully
