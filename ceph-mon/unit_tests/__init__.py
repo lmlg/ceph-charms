@@ -22,8 +22,6 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for path in ('hooks', 'lib', 'unit_tests', 'actions', 'src'):
     sys.path.append(os.path.join(root_dir, path))
 
-sys.path.append('/home/runner/work/ceph-charms/ceph-charms/ceph-mon/lib')
-
 
 # Patch out lsb_release() and get_platform() as unit tests should be fully
 # insulated from the underlying platform.  Unit tests assume that the system is
@@ -36,3 +34,5 @@ mock.patch(
     return_value={
         'DISTRIB_CODENAME': 'jammy'
     }).start()
+
+raise KeyError('...')
