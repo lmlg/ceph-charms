@@ -34,5 +34,3 @@ mock.patch(
     return_value={
         'DISTRIB_CODENAME': 'jammy'
     }).start()
-
-raise KeyError('...')
