@@ -29,7 +29,7 @@ jobs:
           done
           
           components=($components)
-          modified_parts=(jq --compact-output --null-input '$ARGS.positional' --args -- "${components[@]}")
+          modified_parts=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${components[@]}")
           echo "Modified parts: $modified_parts"
           echo "parts=$modified_parts" >> $GITHUB_OUTPUT
 
