@@ -22,7 +22,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for path in ('hooks', 'lib', 'unit_tests', 'actions', 'src'):
     sys.path.append(os.path.join(root_dir, path))
 
-print ("SYSTEM PATHS: %s" % str(sys.path))
+print("SYSTEM PATHS: %s" % str(sys.path))
 
 
 # Patch out lsb_release() and get_platform() as unit tests should be fully
