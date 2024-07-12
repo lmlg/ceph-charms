@@ -23,21 +23,16 @@ from os import (
 )
 import requests
 import tempfile
-import boto3
-import botocore.exceptions
 import urllib3
 
 import tenacity
 
-import zaza.charm_lifecycle.utils as lifecycle_utils
 import zaza.openstack.charm_tests.test_utils as test_utils
 import zaza.model as zaza_model
 import zaza.openstack.utilities.ceph as zaza_ceph
 import zaza.openstack.utilities.exceptions as zaza_exceptions
 import zaza.openstack.utilities.generic as zaza_utils
-import zaza.utilities.juju as juju_utils
 import zaza.openstack.utilities.openstack as zaza_openstack
-import zaza.openstack.utilities.generic as generic_utils
 
 # Disable warnings for ssl_verify=false
 urllib3.disable_warnings(
@@ -54,28 +49,28 @@ def setup_osd_standalone():
             'sudo ceph osd erasure-code-profile set default '
             'plugin=jerasure k=2 m=1 crush-failure-domain=osd']
     for cmd in cmds:
-        model.run_on_unit('ceph-mon/0', cmd)
+        zaza_model.run_on_unit('ceph-mon/0', cmd)
 
     loops = []
     for file in ('l1', 'l2', 'l3'):
-        model.run_on_unit('ceph-osd/0', 'touch %s' % file)
-        model.run_on_unit('ceph-osd/0', 'truncate --size 2G ./%s' % file)
-        out = model.run_on_unit('ceph-osd/0',
-                                'sudo losetup -fP --show ./%s' % file)
+        zaza_model.run_on_unit('ceph-osd/0', 'touch %s' % file)
+        zaza_model.run_on_unit('ceph-osd/0', 'truncate --size 2G ./%s' % file)
+        out = zaza_model.run_on_unit('ceph-osd/0',
+                                     'sudo losetup -fP --show ./%s' % file)
         loops.append(out['Stdout'].strip())
 
     for loop in loops:
-        model.run_action_on_leader('ceph-osd', 'add-disk',
-                                   action_params={'osd-devices': loop})
+        zaza_model.run_action_on_leader('ceph-osd', 'add-disk',
+                                        action_params={'osd-devices': loop})
 
     states = None
     try:
-        model.get_application('ubuntu')
+        zaza_model.get_application('ubuntu')
         states = {'ubuntu': {'workload-status-message': ''}}
     except KeyError:
         pass
 
-    model.wait_for_application_states(states=states)
+    zaza_model.wait_for_application_states(states=states)
 
 
 class CephLowLevelTest(test_utils.BaseCharmTest):
