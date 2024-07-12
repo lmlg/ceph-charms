@@ -70,7 +70,7 @@ jobs:
       - name: Build charm(s)
         id: builder
         run: |
-          sudo snap install charmcraft --classic
+          sudo snap install charmcraft --classic --channel=3.x/stable
           tox -c ${{ matrix.part }} -e build
 
       - name: Upload built charm
@@ -122,9 +122,9 @@ jobs:
           date
           mv ~/artifacts/*.charm ./
           if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
-            tox -c ${{ matrix.part }}/src -e func-target -- jammy
+            tox -c ${{ matrix.part }}/src -e func-target -- noble
           else
-            tox -c ${{ matrix.part}} -e func-target -- jammy
+            tox -c ${{ matrix.part}} -e func-target -- noble
           fi
 
       - name: Generate crash dumps
