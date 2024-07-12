@@ -20,7 +20,7 @@ from unittest import mock
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for path in ('hooks', 'lib', 'unit_tests', 'actions', 'src', 'files/nagios'):
-    sys.path.insert(0, os.path.join(root_dir, path))
+    sys.path.append(os.path.join(root_dir, path))
 
 # Patch out lsb_release() and get_platform() as unit tests should be fully
 # insulated from the underlying platform.  Unit tests assume that the system is
