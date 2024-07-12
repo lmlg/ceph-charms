@@ -70,7 +70,7 @@ jobs:
       - name: Build charm(s)
         id: builder
         run: |
-          sudo snap install charmcraft --classic --channel=3.x/stable
+          sudo snap install charmcraft --classic --channel=3.x/edge
           tox -c ${{ matrix.part }} -e build
 
       - name: Upload built charm
