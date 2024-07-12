@@ -19,9 +19,6 @@ import unittest
 from unittest.mock import patch, mock_open
 from src.ceph_hooks import update_host_osd_count_report
 
-os.sys.path.insert(1, os.path.join(sys.path[0], 'lib'))
-os.sys.path.insert(1, os.path.join(sys.path[0], 'files/nagios'))
-
 import check_ceph_osd_count
 
 from charms_ceph.utils import CrushLocation
