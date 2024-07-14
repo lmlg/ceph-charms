@@ -87,6 +87,7 @@ jobs:
   functional-test:
     needs:
       - build
+      - modifiedparts
     name: Functional tests
     runs-on: self-hosted
     if: ${{ needs.modifiedparts.output.parts != '[]' }}
