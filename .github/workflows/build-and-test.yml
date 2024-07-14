@@ -70,7 +70,12 @@ jobs:
       - name: Build charm(s)
         id: builder
         run: |
-          sudo snap install charmcraft --classic --channel=3.x/edge
+          # XXX: charmcraft 3 has issues with reactive charms.
+          if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
+            sudo snap install charmcraft --classic --channel=2.x/edge
+          else
+            sudo snap install charmcraft --classic --channel=3.x/edge
+          fi
           tox -c ${{ matrix.part }} -e build
 
       - name: Upload built charm
