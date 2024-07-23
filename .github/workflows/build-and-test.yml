@@ -126,7 +126,7 @@ jobs:
       - name: Run the tests
         run: |
           date
-          mv ~/artifacts/*.charm ./
+          mv ~/artifacts/*.charm ${{ matrix.part }}/
           if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
             tox -c ${{ matrix.part }}/src -e func-target -- noble
           else
