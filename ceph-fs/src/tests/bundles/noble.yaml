@@ -23,6 +23,8 @@ applications:
     to:
       - '2'
       - '3'
+    channel: latest/stable
+    series: jammy
 
   ceph-fs:
     charm: ../../../ceph-fs.charm
