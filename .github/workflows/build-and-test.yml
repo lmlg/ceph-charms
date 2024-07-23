@@ -89,7 +89,7 @@ jobs:
       - build
       - modifiedparts
     name: Functional tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ needs.modifiedparts.output.parts != '[]' }}
     strategy:
       matrix:
