@@ -35,7 +35,7 @@ applications:
       ec-profile-k: 4
       ec-profile-m: 2
     to:
-      - '2'
+      - '1'
 
   ceph-osd:
     charm: ch:ceph-osd
