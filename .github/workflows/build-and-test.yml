@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: charms
-          path: "{{ matrix.part }}/*.charm"
+          path: "${{ matrix.part }}/*.charm"
 
   functional-test:
     needs:
