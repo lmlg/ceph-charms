@@ -70,12 +70,7 @@ jobs:
       - name: Build charm(s)
         id: builder
         run: |
-          # XXX: charmcraft 3 has issues with reactive charms.
-          if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
-            sudo snap install charmcraft --classic --channel=2.x/edge
-          else
-            sudo snap install charmcraft --classic --channel=3.x/edge
-          fi
+          sudo snap install charmcraft --classic --channel=3.x/edge
           tox -c ${{ matrix.part }} -e build
 
       - name: Upload built charm
@@ -127,11 +122,7 @@ jobs:
         run: |
           date
           mv ~/artifacts/*.charm ${{ matrix.part }}/
-          if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
-            tox -c ${{ matrix.part }}/src -e func-target -- noble
-          else
-            tox -c ${{ matrix.part}} -e func-target -- noble
-          fi
+          tox -c ${{ matrix.part}} -e func-target -- noble
 
       - name: Generate crash dumps
         if: failure()
