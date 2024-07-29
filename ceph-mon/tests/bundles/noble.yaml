@@ -34,6 +34,7 @@ applications:
     num_units: 3
     options:
       source: *openstack-origin
+      expected-osd-count: 1
       monitor-count: '3'
     to:
       - '0'
