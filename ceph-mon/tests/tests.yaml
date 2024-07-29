@@ -7,7 +7,7 @@ smoke_bundles:
   - noble-caracal
 
 configure:
-  - tests.target.setup_osd_standalone
+  - tests.target.setup_osds
 
 tests:
   - tests.target.CheckPoolTypes
@@ -25,3 +25,12 @@ tests:
   - tests.target.CephAuthTest
   - tests.target.CephMonActionsTest
   - tests.target.CephMonKeyRotationTests
+
+target_deploy_status:
+  ceph-osd:
+    workload-status: blocked
+    workload-status-message: 'No block devices detected using current configuration'
+
+  ceph-mon:
+    workload-status: waiting
+    workload-status-message-prefix: 'Monitor bootstrapped but waiting for number of OSDs to reach expected-osd-count'
