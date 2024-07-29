@@ -122,7 +122,11 @@ jobs:
         run: |
           date
           mv ~/artifacts/*.charm ${{ matrix.part }}/
-          tox -c ${{ matrix.part}} -e func-target -- noble
+          if [[ -f "${{ matrix.part }}/src/tox.ini" ]]; then
+            tox -c ${{ matrix.part }}/src -e func-target -- noble
+          else
+            tox -c ${{ matrix.part}} -e func-target -- noble
+          fi
 
       - name: Generate crash dumps
         if: failure()
