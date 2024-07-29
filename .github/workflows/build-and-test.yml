@@ -7,7 +7,7 @@ jobs:
   modifiedparts:
     runs-on: ubuntu-latest
     outputs:
-      parts: ${{steps.changed-parts.outputs.parts }}
+      parts: ${{ steps.changed-parts.outputs.parts }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,14 +22,16 @@ jobs:
           components=()
           # Retrieve components with a 'tox.ini' file.
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            component=$(echo "$file" | cut -d "/" -f2)
-            if [[ -f "/$component/tox.ini" ]]; then
-              components="$components /$component"
+            component=$(echo "./$file" | cut -d "/" -f2)
+            if [[ -f "./$component/tox.ini" ]]; then
+              components="$components $component"
             fi
           done
-          
+ 
           components=($components)
-          modified_parts=(jq --compact-output --null-input '$ARGS.positional' --args -- "${components[@]}")
+          # Make the keys unique
+          components=($(printf "%s\n" "${components[@]}" | sort -u))
+          modified_parts=$(jq --compact-output --null-input '$ARGS.positional' --args -- "${components[@]}")
           echo "Modified parts: $modified_parts"
           echo "parts=$modified_parts" >> $GITHUB_OUTPUT
 
@@ -42,13 +44,17 @@ jobs:
       matrix:
         part: ${{ fromJson(needs.modifiedparts.outputs.parts) }}
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get -qq install libxslt-dev libxml2-dev python3-lxml
-          python3 -m pip install tox
+          sudo python3 -m pip install "tox<4" "setuptools<50" "virtualenv<20"
 
       - name: Run linters
         run: tox -c ${{ matrix.part }} -e pep8
@@ -64,20 +70,21 @@ jobs:
       - name: Build charm(s)
         id: builder
         run: |
-          sudo snap install charmcraft --classic
+          sudo snap install charmcraft --classic --channel=3.x/edge
           tox -c ${{ matrix.part }} -e build
 
       - name: Upload built charm
         uses: actions/upload-artifact@v3
         with:
           name: charms
-          path: "*.charm"
+          path: "${{ matrix.part }}/*.charm"
 
   functional-test:
     needs:
       - build
+      - modifiedparts
     name: Functional tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: ${{ needs.modifiedparts.output.parts != '[]' }}
     strategy:
       matrix:
@@ -102,7 +109,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip install tox
+          python3 -m pip install "tox<4"
           if [ ! -d "$HOME/.local/share/juju" ]; then
             sudo snap install juju --channel=3.4/stable
             mkdir -p ~/.local/share/juju
@@ -114,11 +121,11 @@ jobs:
       - name: Run the tests
         run: |
           date
-          mv ~/artifacts/*.charm ./
-          if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
-            tox -c ${{ matrix.part }}/src -e func-target -- jammy
+          mv ~/artifacts/*.charm ${{ matrix.part }}/
+          if [[ -f "${{ matrix.part }}/src/tox.ini" ]]; then
+            tox -c ${{ matrix.part }}/src -e func-target -- noble
           else
-            tox -c ${{ matrix.part}} -e func-target -- jammy
+            tox -c ${{ matrix.part}} -e func-target -- noble
           fi
 
       - name: Generate crash dumps

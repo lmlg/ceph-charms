@@ -1,5 +1,5 @@
 #!/bin/bash
-charm=$(grep "charm_build_name" osci.yaml | awk '{print $2}')
+charm=$(grep -m 1 "name" metadata.yaml | awk '{print $2}')
 echo "renaming ${charm}_*.charm to ${charm}.charm"
 echo -n "pwd: "
 pwd

@@ -7,32 +7,30 @@ smoke_bundles:
   - noble-caracal
 
 configure:
-  - install:
-    - zaza.openstack.charm_tests.glance.setup.add_lts_image
+  - tests.target.setup_osds
 
 tests:
-  - install:
-    - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
-    - zaza.openstack.charm_tests.ceph.tests.CephLowLevelTest
-    - zaza.openstack.charm_tests.ceph.tests.CephTest
-    - zaza.openstack.charm_tests.ceph.osd.tests.SecurityTest
-    - zaza.openstack.charm_tests.ceph.tests.CephPrometheusTest
-    - zaza.openstack.charm_tests.ceph.mon.tests.CephPermissionUpgradeTest
-  - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
-  - zaza.openstack.charm_tests.ceph.tests.CephLowLevelTest
-  - zaza.openstack.charm_tests.ceph.tests.CephTest
-  - zaza.openstack.charm_tests.ceph.osd.tests.SecurityTest
-  - zaza.openstack.charm_tests.ceph.tests.CephPrometheusTest
+  - tests.target.CheckPoolTypes
+  - tests.target.CephLowLevelTest
+  - tests.target.CephTest
+  - tests.target.CephPrometheusTest
   # Charm upgrade, then re-run tests
   - zaza.charm_tests.lifecycle.tests.UpgradeCharmsToPath;ceph-mon
-  - zaza.openstack.charm_tests.ceph.tests.CephMonJujuPersistent
-  - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
-  - zaza.openstack.charm_tests.ceph.tests.CephLowLevelTest
-  - zaza.openstack.charm_tests.ceph.tests.CephTest
-  - zaza.openstack.charm_tests.ceph.osd.tests.SecurityTest
-  - zaza.openstack.charm_tests.ceph.tests.CephPrometheusTest
+  - tests.target.CephMonJujuPersistent
+  - tests.target.CheckPoolTypes
+  - tests.target.CephLowLevelTest
+  - tests.target.CephTest
+  - tests.target.CephPrometheusTest
   # Tests from quincy.
-  - zaza.openstack.charm_tests.ceph.tests.CephAuthTest
-  - zaza.openstack.charm_tests.ceph.tests.CephMonActionsTest
-  - zaza.openstack.charm_tests.ceph.mon.tests.CephPermissionUpgradeTest
-  - zaza.openstack.charm_tests.ceph.tests.CephMonKeyRotationTests
+  - tests.target.CephAuthTest
+  - tests.target.CephMonActionsTest
+  - tests.target.CephMonKeyRotationTests
+
+target_deploy_status:
+  ceph-osd:
+    workload-status: blocked
+    workload-status-message: 'No block devices detected using current configuration'
+
+  ceph-mon:
+    workload-status: waiting
+    workload-status-message-prefix: 'Monitor bootstrapped but waiting for number of OSDs to reach expected-osd-count'
