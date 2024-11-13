@@ -73,10 +73,11 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: charms
-          path: "*.charm"
+          path: "./${{ matrix.part }}/*.charm"
 
   functional-test:
     needs:
+      - modifiedparts
       - build
     name: Functional tests
     runs-on: self-hosted
@@ -118,9 +119,9 @@ jobs:
           date
           mv ~/artifacts/*.charm ./
           if [[ -f "./${{ matrix.part }}/src/tox.ini" ]]; then
-            tox -c ${{ matrix.part }}/src -e func-target -- jammy
+            tox -c ${{ matrix.part }}/src -e func-target -- noble-caracal
           else
-            tox -c ${{ matrix.part}} -e func-target -- jammy
+            tox -c ${{ matrix.part}} -e func-target -- noble-caracal
           fi
 
       - name: Generate crash dumps
