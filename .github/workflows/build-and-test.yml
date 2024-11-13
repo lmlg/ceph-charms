@@ -22,10 +22,10 @@ jobs:
           components=()
           # Retrieve components with a 'tox.ini' file.
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            component=$(echo "$file" | cut -d "/" -f2)
+            component=$(echo "$file" | cut -d "/" -f1)
             echo "COMPONENT: $component"
-            if [[ -f "/$component/tox.ini" ]]; then
-              components="$components /$component"
+            if [[ -f "./$component/tox.ini" ]]; then
+              components="$components $component"
             fi
           done
           
@@ -50,7 +50,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get -qq install libxslt-dev libxml2-dev python3-lxml
-          python3 -m pip install tox
+          sudo python3 -m pip install tox
 
       - name: Run linters
         run: tox -c ${{ matrix.part }} -e pep8
@@ -61,7 +61,7 @@ jobs:
       - name: Setup LXD
         uses: canonical/setup-lxd@v0.1.1
         with:
-          channel: 5.20/stable
+          channel: 5.21/stable
 
       - name: Build charm(s)
         id: builder
