@@ -23,13 +23,13 @@ jobs:
           # Retrieve components with a 'tox.ini' file.
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             component=$(echo "$file" | cut -d "/" -f1)
-            echo "COMPONENT: $component"
             if [[ -f "./$component/tox.ini" ]]; then
               components="$components $component"
             fi
           done
           
-          echo "COMPONENTS: $components"
+          components=($components)
+          components=`echo "${components[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '`
           components=($components)
           modified_parts=`jq --compact-output --null-input '$ARGS.positional' --args -- "${components[@]}"`
           echo "Modified parts: $modified_parts"
