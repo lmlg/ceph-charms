@@ -21,7 +21,6 @@ applications:
   ceph-radosgw:
     charm: ../../../ceph-radosgw.charm
     num_units: 1
-    channel: latest/edge
     options:
       source: *source
     to:
