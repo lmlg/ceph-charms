@@ -1,0 +1,23 @@
+- project:
+    templates:
+      - charm-unit-jobs-py310
+    check:
+      jobs:
+        - vault-noble-caracal_rgw
+        - vault-noble-caracal-namespaced
+    vars:
+      needs_charm_build: true
+      charm_build_name: ceph-radosgw
+      build_type: charmcraft
+      charmcraft_channel: 3.x/beta
+
+- job:
+    name: vault-noble-caracal-namespaced
+    parent: func-target
+    vars:
+      tox_extra_args: '-- vault:noble-caracal-namespaced'
+- job:
+    name: vault-noble-caracal_rgw
+    parent: func-target
+    vars:
+      tox_extra_args: '-- vault:noble-caracal'
