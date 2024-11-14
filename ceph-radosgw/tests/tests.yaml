@@ -1,40 +1,7 @@
 charm_name: ceph-radosgw
 
-gate_bundles:
-  - noble-caracal-multisite
-  - vault: noble-caracal
-  - vault: noble-caracal-namespaced
-
-smoke_bundles:
-  - noble-caracal-multisite
-  - vault: noble-caracal
-
-dev_bundles:
-  - noble-caracal-multisite
-  - vault: noble-caracal
-  - vault: noble-caracal-namespaced
-
-target_deploy_status:
-  vault:
-    workload-status: blocked
-    workload-status-message-prefix: Vault needs to be initialized
-
-configure:
-  - vault:
-    - zaza.openstack.charm_tests.vault.setup.auto_initialize
-
 tests:
-  - zaza.openstack.charm_tests.ceph.tests.CephRGWTest
-  - vault:
-    - zaza.openstack.charm_tests.ceph.tests.CephRGWTest
-    - zaza.openstack.charm_tests.swift.tests.S3APITest
-    - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
-    - zaza.openstack.charm_tests.ceph.tests.BlueStoreCompressionCharmOperation
-    # Charm upgrade, then re-run tests
-    - zaza.charm_tests.lifecycle.tests.UpgradeCharmsToPath;ceph-radosgw
-    - zaza.openstack.charm_tests.ceph.tests.CephRGWTest
-    - zaza.openstack.charm_tests.swift.tests.S3APITest
-    - zaza.openstack.charm_tests.ceph.tests.CheckPoolTypes
-    - zaza.openstack.charm_tests.ceph.tests.BlueStoreCompressionCharmOperation
-    - zaza.openstack.charm_tests.ceph.tests.CephMonKeyRotationTests
+    - tests.target.CephRGWTest
+    - tests.target.BlueStoreCompressionCharmOperation
+    - tests.target.CephKeyRotationTests
 
