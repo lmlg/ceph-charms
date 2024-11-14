@@ -23,23 +23,17 @@ from os import (
     path
 )
 import re
-import requests
 import tempfile
-import boto3
-import botocore.exceptions
 import urllib3
 
 import tenacity
 
-import zaza.charm_lifecycle.utils as lifecycle_utils
 import zaza.openstack.charm_tests.test_utils as test_utils
 import zaza.model as zaza_model
 import zaza.openstack.utilities.ceph as zaza_ceph
 import zaza.openstack.utilities.exceptions as zaza_exceptions
 import zaza.openstack.utilities.generic as zaza_utils
-import zaza.utilities.juju as juju_utils
 import zaza.openstack.utilities.openstack as zaza_openstack
-import zaza.openstack.utilities.generic as generic_utils
 
 # Disable warnings for ssl_verify=false
 urllib3.disable_warnings(
