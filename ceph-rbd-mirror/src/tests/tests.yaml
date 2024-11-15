@@ -1,0 +1,12 @@
+charm_name: ceph-rbd-mirror
+gate_bundles:
+  - noble-caracal
+comment: |
+  The e2e bundles are useful for development but adds no additional value to
+  the functional tests.
+configure:
+- zaza.openstack.charm_tests.glance.setup.add_cirros_image
+tests:
+- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorTest
+- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorControlledFailoverTest
+- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorDisasterFailoverTest
