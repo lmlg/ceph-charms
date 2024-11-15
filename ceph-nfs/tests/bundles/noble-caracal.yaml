@@ -54,6 +54,12 @@ applications:
       source: *source
     to:
       - '2'
+  hacluster:
+    charm: ch:hacluster
+    channel: 2.4/edge
+    options:
+      cluster_count: 2
+
 relations:
   - - 'ceph-mon:client'
     - 'ceph-nfs:ceph-client'
@@ -61,3 +67,5 @@ relations:
     - 'ceph-mon:osd'
   - - 'ceph-fs'
     - 'ceph-mon'
+  - - 'ceph-nfs:ha'
+    - 'hacluster:ha'

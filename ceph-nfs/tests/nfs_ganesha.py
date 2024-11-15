@@ -30,6 +30,18 @@ class NfsGaneshaTest(unittest.TestCase):
     mounts_share = False
     created_share = None
 
+    def setUp(self):
+        super(NfsGaneshaTest, self).setUp()
+        ip1 = zaza.model.get_unit_public_address(
+            zaza.model.get_unit_from_name('ceph-nfs/0')
+        )
+        ip2 = zaza.model.get_unit_public_address(
+            zaza.model.get_unit_from_name('ceph-nfs/1')
+        )
+        zaza.model.set_application_config(
+            'ceph-nfs',
+            {'vip': ' '.join([str(ip1), str(ip2)])})
+
     def tearDown(self):
         if self.mounts_share:
             try:
