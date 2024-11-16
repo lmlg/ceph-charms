@@ -1,0 +1,26 @@
+options:
+  cpuset:
+    type: string
+    default: ''
+    description: |
+      The set of CPUs on which the SPDK target may run. This can be
+      an integer, which specifies the number of cores, or a squared-bracketed
+      list of CPU id's. By default, half the CPU cores will be used.
+
+  proxy-port:
+    type: int
+    default: 64321
+    description: |
+      The port on which the internal proxy will be bound to.
+
+  dashboard-password:
+    type: string
+    default: ''
+    description: |
+      The password for the NVMe tab in the dashboard.
+
+  nr-hugepages:
+    type: int
+    default: 2048
+    description: |
+      The amount of hugepages to use. If set to 0, don't use them.

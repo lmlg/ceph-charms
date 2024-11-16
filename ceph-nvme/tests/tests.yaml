@@ -1,0 +1,14 @@
+charm_name: ceph-nvme
+configure:
+  - tests.target.setup_osds_and_pools
+tests:
+  - tests.target.CephNVMETest
+
+target_deploy_status:
+  ceph-osd:
+    workload-status: blocked
+    workload-status-message: 'No block devices detected using current configuration'
+
+  ceph-mon:
+    workload-status: waiting
+    workload-status-message: 'Monitor bootstrapped but waiting for number of OSDs to reach expected-osd-count (1)'
