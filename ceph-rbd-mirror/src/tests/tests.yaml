@@ -1,12 +1,16 @@
 charm_name: ceph-rbd-mirror
-gate_bundles:
-  - noble-caracal
-comment: |
-  The e2e bundles are useful for development but adds no additional value to
-  the functional tests.
 configure:
-- zaza.openstack.charm_tests.glance.setup.add_cirros_image
+  - tests.target.setup_rbd_mirror
 tests:
-- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorTest
-- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorControlledFailoverTest
-- zaza.openstack.charm_tests.ceph.rbd_mirror.tests.CephRBDMirrorDisasterFailoverTest
+- tests.target.CephRBDMirrorTest
+- tests.target.CephRBDMirrorControlledFailoverTest
+- tests.target.CephRBDMirrorDisasterFailoverTest
+
+target_deploy_status:
+  ceph-rbd-mirror:
+    workload-status: waiting
+    workload-status-message: 'Waiting for pools to be created'
+
+  ceph-rbd-mirror-b:
+    workload-status: waiting
+    workload-status-message: 'Waiting for pools to be created'
