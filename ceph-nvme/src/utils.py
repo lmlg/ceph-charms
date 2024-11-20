@@ -21,6 +21,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import uuid
 
 
 HUGEPAGES = '/proc/sys/vm/nr_hugepages'
@@ -139,3 +140,7 @@ def setup_hugepages(target):
         return rv == 0
     except Exception:
         return False
+
+
+def node_id():
+    return str(uuid.uuid4())

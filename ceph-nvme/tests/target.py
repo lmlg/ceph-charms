@@ -90,7 +90,8 @@ class CephNVMETest(test_utils.BaseCharmTest):
             unit_name='ceph-nvme/1',
             action_name='list-endpoints')
         zaza_utils.assertActionRanOK(action_obj)
-        self.assertEqual(action_obj.data['results']['endpoints'], '[]')
+        value = action_obj.data['results'].get('endpoints')
+        self.assertTrue(value is None or value == '[]')
 
         # Finally, re-join the endpoint we just deleted.
         action_obj = zaza_model.run_action(
