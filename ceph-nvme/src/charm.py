@@ -53,7 +53,8 @@ WantedBy=multi-user.target
 class CephNVMECharm(ops.CharmBase):
     """Charm the application."""
 
-    PACKAGES = ['librados-dev', 'librbd-dev']
+    POOL_NAME = '__nvme_globals'
+    PACKAGES = ['librados-dev', 'librbd-dev', 'python3-rados', 'python3-rbd']
 
     CAPABILITIES = [
         "osd", "allow *",
@@ -149,6 +150,7 @@ class CephNVMECharm(ops.CharmBase):
     def _on_ceph_relation_joined(self, event):
         self.client.request_ceph_permissions(
             self.app_name, self.CAPABILITIES)
+        self.client.create_replicated_pool(self.POOL_NAME)
 
     def _on_ceph_relation_changed(self, event):
         """Handle the Ceph relation."""
@@ -368,7 +370,8 @@ class CephNVMECharm(ops.CharmBase):
         else:
             for elem in resp.get('hosts', ()):
                 tmp = self._msgloop(self.rpc.host_add(
-                    nqn=nqn, dhchap_key=elem.get('dhchap_key')))
+                    nqn=nqn, host=elem['nqn'],
+                    dhchap_key=elem.get('dhchap_key')))
                 if 'error' in tmp:
                     self._msgloop(self.rpc.remove(nqn=nqn), sock=sock)
                     raise RuntimeError('failed to create endpoint: %s' %
@@ -394,7 +397,7 @@ class CephNVMECharm(ops.CharmBase):
                                                           sock, event)
                 except Exception as exc:
                     event.fail(str(exc))
-                    return 0, ""
+                    return 0, bdev_spec
 
             # Tell our peer to join us.
             alist = [{'addr': bdev_spec['addr'], 'port': bdev_spec['port']}]
@@ -538,6 +541,8 @@ class CephNVMECharm(ops.CharmBase):
         with open(config_path, 'w') as config_file:
             conf = {k: self.config.get(k, '')
                     for k in ('cpuset', 'proxy-port', 'nr-hugepages')}
+            conf['node-id'] = utils.node_id()
+            conf['pool'] = self.POOL_NAME
             config_file.write(json.dumps(conf))
         return config_path
 

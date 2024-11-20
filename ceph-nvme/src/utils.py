@@ -21,6 +21,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import uuid
 
 
 HUGEPAGES = '/proc/sys/vm/nr_hugepages'
@@ -61,7 +62,7 @@ def compute_cpuset(spec):
         # List of cpus on which to run the target.
         try:
             cpuset = json.loads(cpuset)
-            cpuset = list(set(cpuset).intersect(cpus))
+            cpuset = list(set(cpuset).intersection(cpus))
             if not cpuset:
                 cpuset = default_cpuset(cpus)
             return cpuset
@@ -139,3 +140,7 @@ def setup_hugepages(target):
         return rv == 0
     except Exception:
         return False
+
+
+def node_id():
+    return str(uuid.uuid4())

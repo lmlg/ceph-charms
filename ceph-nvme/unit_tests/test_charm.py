@@ -224,6 +224,10 @@ class TestCharm(unittest.TestCase):
         charm.on_add_host_action(event)
         event.set_results.assert_called()
 
+        # We expect the following calls:
+        # local-addhost
+        # remove-addhost
+
         expected = [('host_add', True), ('host_add', False)]
         self._check_calls(rpc_sock.sendto.call_args_list, expected)
 
@@ -240,6 +244,10 @@ class TestCharm(unittest.TestCase):
         charm, rpc_sock, event = self._setup_mock_params(check_output)
         event.params = {'host': 'host_nqn', 'nqn': 'nqn.1'}
         charm.on_delete_host_action(event)
+
+        # We expect the following calls:
+        # local-deletehost
+        # remote-deletehost
 
         event.set_results.assert_called()
         expected = [('host_del', True), ('host_del', False)]

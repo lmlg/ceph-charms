@@ -26,7 +26,7 @@ applications:
       - '2'
 
   ceph-nvme:
-    charm: ../../ceph-nvme.charm
+    charm: ../../../ceph-nvme.charm
     num_units: 2
     options:
       nr-hugepages: 0

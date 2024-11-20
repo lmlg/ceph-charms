@@ -26,19 +26,40 @@ import src.proxy as proxy
 from . import utils
 
 
-LOCAL_SOCK = '/tmp/proxy-test.sock'
-LOCAL_PORT = 65000
-PROXY_ADDR = ('127.0.0.1', LOCAL_PORT)
+class MockGmap:
+    BASE = {'version': 0, 'subsys': {}}
+
+    def __init__(self, *args):
+        self.gmap = self.BASE.copy()
+
+    def add_cluster(self, *args):
+        pass
+
+    def get_global_map(self):
+        return self.gmap
+
+    def update_map(self, fn):
+        tmp = self.gmap.copy()
+        fn(tmp)
+        self.gmap = tmp
+        if not isinstance(tmp, dict):
+            raise TypeError()
 
 
-class TestProxy(unittest.TestCase):
+class TestBase(unittest.TestCase):
+    GMAP_CLS = None
+    LOCAL_STATE = None
+    SOCK_PATH = None
+    LOCAL_PORT = None
+
     def setUp(self):
         self.rpc = proxy.utils.RPC()
-        if os.path.exists(LOCAL_SOCK):
-            os.unlink(LOCAL_SOCK)
+        self.proxy_addr = ('127.0.0.1', self.LOCAL_PORT)
+        if os.path.exists(self.SOCK_PATH):
+            os.unlink(self.SOCK_PATH)
 
         rpc_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        rpc_sock.bind(LOCAL_SOCK)
+        rpc_sock.bind(self.SOCK_PATH)
         rpc_sock.listen(1)
 
         def _mp_spdk(sock):
@@ -55,9 +76,15 @@ class TestProxy(unittest.TestCase):
             config_path = os.path.join(wname, 'config.json')
 
             with open(config_path, 'w') as file:
-                file.write('{"proxy-port":%d}' % LOCAL_PORT)
+                conf = {'proxy-port': self.LOCAL_PORT, 'pool': 'xpool',
+                        'node-id': 'nx'}
+                file.write(json.dumps(conf))
 
-            p = proxy.Proxy(config_path, LOCAL_SOCK)
+            if self.LOCAL_STATE is not None:
+                with open(os.path.join(wname, 'local.json'), 'w') as file:
+                    file.write(json.dumps(self.LOCAL_STATE))
+
+            p = proxy.Proxy(config_path, self.SOCK_PATH, self.GMAP_CLS)
             out.append(1)
             p.serve()
 
@@ -75,7 +102,7 @@ class TestProxy(unittest.TestCase):
             time.sleep(0)
 
     def tearDown(self):
-        self.local_sock.sendto(b'{"method":"stop"}', PROXY_ADDR)
+        self.local_sock.sendto(b'{"method":"stop"}', self.proxy_addr)
         self.proxy.join()
         self.local_sock.close()
         self.spdk.kill()
@@ -83,8 +110,14 @@ class TestProxy(unittest.TestCase):
 
     def msgloop(self, msg):
         msg = json.dumps(msg).encode('utf8')
-        self.local_sock.sendto(msg, PROXY_ADDR)
+        self.local_sock.sendto(msg, self.proxy_addr)
         return json.loads(self.local_sock.recv(2048))
+
+
+class TestProxy(TestBase):
+    GMAP_CLS = MockGmap
+    SOCK_PATH = '/tmp/proxy-test.sock'
+    LOCAL_PORT = 65000
 
     def test_rpcs(self):
         msg = self.rpc.cluster_add(
@@ -122,6 +155,8 @@ class TestProxy(unittest.TestCase):
         rv = self.msgloop(msg)
         self.assertEqual(len(rv), 1)
         self.assertEqual(rv[0]['host'], 'host')
+        self.assertEqual(rv[0]['dhchap_key'],
+                         prev['nqn'] + '@' + rv[0]['host'])
 
         msg = self.rpc.host_add(host='any', nqn=prev['nqn'])
         rv = self.msgloop(msg)
@@ -147,3 +182,26 @@ class TestProxy(unittest.TestCase):
         msg = self.rpc.remove(nqn=prev['nqn'])
         rv = self.msgloop(msg)
         self.assertNotIn('error', rv)
+
+
+class MockGmapWithContents(MockGmap):
+    BASE = {'subsys':
+            {'nqn.1':
+                {'name': 'rbd://{"pool":"p1","image":"i1","cluster":"ceph"}',
+                 'hosts': [{'host': 'any', 'dhchap_key': False},
+                           {'host': 'nqn.2',
+                            'dhchap_key': 'some-key'}],
+                 'units': {'nx': ['127.0.0.1', '8888']}}}}
+
+
+class TestProxyWithContents(TestBase):
+    SOCK_PATH = '/tmp/proxy-test2.sock'
+    GMAP_CLS = MockGmapWithContents
+    LOCAL_PORT = 65001
+    LOCAL_STATE = {'clusters': [{'name': 'ceph', 'user': 'u1', 'key': 'K',
+                                 'mon_host': '1.1.1.1'}]}
+
+    def test_proxy_with_contents(self):
+        rv = self.msgloop(self.rpc.list())
+        self.assertNotIn('error', 'rv')
+        self.assertEqual(len(rv), 1)
