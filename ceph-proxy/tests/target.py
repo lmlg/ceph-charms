@@ -16,6 +16,7 @@ import unittest
 import logging
 import tenacity
 import json
+import subprocess
 
 import zaza
 import zaza.charm_lifecycle.utils as lifecycle_utils
@@ -265,4 +266,3 @@ class CephFSWithCephProxyTests(unittest.TestCase):
                       'mds-cache-reservation': '0.05',
                       'mds-health-cache-threshold': '1.5'}
         _change_conf_check(mds_config)
-
