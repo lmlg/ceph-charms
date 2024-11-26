@@ -137,3 +137,7 @@ class TestUtils(unittest.TestCase):
         port, fam = src_utils.get_free_port('::1')
         self.assertLess(port, 0xffff)
         self.assertEqual(fam, 'IPv6')
+
+        xaddr = src_utils.get_external_addr()
+        _, fam = src_utils.get_adrfam(xaddr)
+        self.assertTrue(fam == 'IPv4' or fam == 'IPv6')

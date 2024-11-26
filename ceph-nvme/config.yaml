@@ -24,3 +24,9 @@ options:
     default: 2048
     description: |
       The amount of hugepages to use. If set to 0, don't use them.
+
+  discovery-port:
+    type: int
+    default: 8009
+    description: |
+      The port on which the discovery service will be bound to.

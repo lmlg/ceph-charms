@@ -139,6 +139,8 @@ class CephNVMECharm(ops.CharmBase):
 
         try:
             return json.loads(sock.recv(4096))
+        except TimeoutError:
+            return {'error': 'timed out waiting for a response'}
         finally:
             if orig_sock is None:
                 sock.close()
@@ -323,26 +325,22 @@ class CephNVMECharm(ops.CharmBase):
         msg['params']['nqn'] = res['nqn']
         self._handle_ha_create(res, peers, msg, sock, event)
 
-    def _leave_endpoint(self, sock, nqn):
-        elem = self._msgloop(self.rpc.find(nqn=nqn), sock=sock)
-        if not elem:
-            return False
-
+    def _leave_endpoint(self, sock, nqn, elem):
         msg = self.rpc.leave(addr=elem['addr'], port=elem['port'], nqn=nqn)
         for addr, *_ in self._peer_addrs():
             # We don't care about the response here.
             self._msgloop(msg, addr=addr, sock=sock)
 
-        return True
-
     def on_delete_endpoint_action(self, event):
         """Handle endpoint deletion."""
         nqn = event.params.get('nqn')
         sock = self._rpc_sock()
-        if not self._leave_endpoint(sock, nqn):
+        elem = self._msgloop(self.rpc.find(nqn=nqn), sock=sock)
+        if not elem:
             event.fail('NQN is not present on this unit')
             return
 
+        self._leave_endpoint(sock, nqn, elem)
         res = self._msgloop(self.rpc.remove(nqn=nqn), sock=sock)
         if 'error' in res:
             event.fail('failed to remove endpoint: %s' % str(res['error']))
@@ -519,9 +517,17 @@ class CephNVMECharm(ops.CharmBase):
         return self._pause_or_resume('start', event)
 
     def on_reset_target_action(self, event):
+        sock = self._rpc_sock()
+        elems = self._msgloop({'method': 'list'}, sock=sock)
+        for elem in elems:
+            # For every endpoint that we support:
+            # - Tell others that we're leaving
+            # - Destroy the subsystem and remove the entry from the global map.
+            self._leave_endpoint(sock, elem['nqn'], elem)
+            self._msgloop(self.rpc.remove(nqn=elem['nqn']), sock=sock)
+
         if self._pause(event):
-            with open(PROXY_CMDS_FILE, 'w'):
-                self._resume(event)
+            self._resume(event)
 
     def on_pause_action(self, event):
         self._pause(event)
@@ -540,7 +546,8 @@ class CephNVMECharm(ops.CharmBase):
         config_path = os.path.join(PROXY_WORKING_DIR, 'config.json')
         with open(config_path, 'w') as config_file:
             conf = {k: self.config.get(k, '')
-                    for k in ('cpuset', 'proxy-port', 'nr-hugepages')}
+                    for k in ('cpuset', 'proxy-port',
+                              'nr-hugepages', 'discovery-port')}
             conf['node-id'] = utils.node_id()
             conf['pool'] = self.POOL_NAME
             config_file.write(json.dumps(conf))

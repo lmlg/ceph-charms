@@ -49,21 +49,23 @@ class MockGmap:
 class TestBase(unittest.TestCase):
     GMAP_CLS = None
     LOCAL_STATE = None
-    SOCK_PATH = None
     LOCAL_PORT = None
+    PRE_CMDS = ()
 
     def setUp(self):
         self.rpc = proxy.utils.RPC()
         self.proxy_addr = ('127.0.0.1', self.LOCAL_PORT)
-        if os.path.exists(self.SOCK_PATH):
-            os.unlink(self.SOCK_PATH)
+        self.sock_path = '/tmp/nvme-test-%d.sock' % id(self)
+
+        if os.path.exists(self.sock_path):
+            os.unlink(self.sock_path)
 
         rpc_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        rpc_sock.bind(self.SOCK_PATH)
+        rpc_sock.bind(self.sock_path)
         rpc_sock.listen(1)
 
-        def _mp_spdk(sock):
-            spdk = utils.MockSPDK(sock)
+        def _mp_spdk(sock, cmds):
+            spdk = utils.MockSPDK(sock, cmds)
             while True:
                 try:
                     spdk.loop()
@@ -77,21 +79,25 @@ class TestBase(unittest.TestCase):
 
             with open(config_path, 'w') as file:
                 conf = {'proxy-port': self.LOCAL_PORT, 'pool': 'xpool',
-                        'node-id': 'nx'}
+                        'node-id': 'nx', 'discovery-port': 8009}
                 file.write(json.dumps(conf))
 
-            if self.LOCAL_STATE is not None:
+            lstate = self.LOCAL_STATE
+            if lstate is not None:
                 with open(os.path.join(wname, 'local.json'), 'w') as file:
-                    file.write(json.dumps(self.LOCAL_STATE))
+                    if not isinstance(lstate, str):
+                        lstate = json.dumps(lstate)
+                    file.write(lstate)
 
-            p = proxy.Proxy(config_path, self.SOCK_PATH, self.GMAP_CLS)
+            p = proxy.Proxy(config_path, self.sock_path, self.GMAP_CLS)
             out.append(1)
             p.serve()
 
         mgr = multiprocessing.Manager()
         out = mgr.list()
 
-        self.spdk = multiprocessing.Process(target=_mp_spdk, args=(rpc_sock,))
+        self.spdk = multiprocessing.Process(target=_mp_spdk,
+                                            args=(rpc_sock, self.PRE_CMDS))
         self.spdk.start()
         self.proxy = multiprocessing.Process(target=_mp_proxy, args=(out,))
         self.proxy.start()
@@ -116,7 +122,6 @@ class TestBase(unittest.TestCase):
 
 class TestProxy(TestBase):
     GMAP_CLS = MockGmap
-    SOCK_PATH = '/tmp/proxy-test.sock'
     LOCAL_PORT = 65000
 
     def test_rpcs(self):
@@ -195,7 +200,6 @@ class MockGmapWithContents(MockGmap):
 
 
 class TestProxyWithContents(TestBase):
-    SOCK_PATH = '/tmp/proxy-test2.sock'
     GMAP_CLS = MockGmapWithContents
     LOCAL_PORT = 65001
     LOCAL_STATE = {'clusters': [{'name': 'ceph', 'user': 'u1', 'key': 'K',
@@ -205,3 +209,20 @@ class TestProxyWithContents(TestBase):
         rv = self.msgloop(self.rpc.list())
         self.assertNotIn('error', 'rv')
         self.assertEqual(len(rv), 1)
+
+        elem = rv[0]
+        self.assertEqual('nqn.1', elem['nqn'])
+        self.assertEqual('127.0.0.1', elem['addr'])
+        self.assertEqual('8888', elem['port'])
+
+
+class TestProxyEmptyLocalFile(TestBase):
+    LOCAL_STATE = ''
+    GMAP_CLS = MockGmap
+    LOCAL_PORT = 65002
+    PRE_CMDS = (('nvmf_create_transport', {'trtype': 'tcp'}),)
+
+    def test_proxy_empty_local_file(self):
+        rv = self.msgloop(self.rpc.list())
+        self.assertNotIn('error', rv)
+        self.assertEqual(len(rv), 0)

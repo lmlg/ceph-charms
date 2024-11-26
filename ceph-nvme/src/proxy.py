@@ -69,14 +69,15 @@ class ProxyCreateEndpoint:
 
     def _add_listener(self, proxy, cleanup, **kwargs):
         params = kwargs['listen_address']
-        port, adrfam = utils.get_free_port(params['traddr'])
+        port = params.get('trsvcid')
+
+        if port is None:
+            port, adrfam = utils.get_free_port(params['traddr'])
+        else:
+            _, adrfam = utils.get_adrfam(params['traddr'])
+
         params['adrfam'] = str(adrfam)
         params['trsvcid'] = str(port)
-        payload = proxy.rpc.nvmf_subsystem_add_listener(**kwargs)
-        self._check_reply(payload, proxy)
-        cleanup.append(proxy.rpc.nvmf_subsystem_remove_listener(**kwargs))
-
-        kwargs['nqn'] = NQN_DISCOVERY
         payload = proxy.rpc.nvmf_subsystem_add_listener(**kwargs)
         self._check_reply(payload, proxy)
         cleanup.append(proxy.rpc.nvmf_subsystem_remove_listener(**kwargs))
@@ -101,7 +102,8 @@ class ProxyCreateEndpoint:
             self._add_listener(
                 proxy, cleanup,
                 nqn=nqn,
-                listen_address=dict(trtype='tcp', traddr=self.msg['addr']))
+                listen_address=dict(trtype='tcp', traddr=self.msg['addr'],
+                                    trsvcid=self.msg.get('port')))
 
             payload = rpc.nvmf_subsystem_add_ns(
                 nqn=nqn,
@@ -201,23 +203,24 @@ class Proxy:
         self.node_id = config['node-id']
         self.receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.receiver.bind(('0.0.0.0', config['proxy-port']))
-        self.rpc_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._connect(rpc_path)
         wdir = os.path.dirname(config_path)
         self.key_dir = os.path.join(wdir, 'keys')
         self.local_state = self._read_local_state(wdir)
 
-        cmds = iter(self._prepare_cmds(config, map_cls))
+        cmds = list(self._prepare_cmds(config, map_cls))
         try:
-            self._process_cmd(next(cmds))
+            self._process_cmd(cmds[0])
         except ProxyError:
             # The first command is always 'nvmf_create_transport'
             # Since we're using TCP and support for it is always
             # built in, this can only fail in case the command has
             # already been applied, which can happen if the proxy
-            # dies, but not SPDK. As such, assume that SPDK is
-            # healthy and needs no further configuring.
-            return
+            # dies, but not SPDK. Since the global state may have
+            # changed since the proxy was running, we need to
+            # reinitialize SPDK as well.
+            self.msgloop(self.rpc.spdk_kill_instance(sig_name='SIGHUP'))
+            self._process_cmd(cmds[0])
 
         # Start with a fresh key directory.
         try:
@@ -226,7 +229,7 @@ class Proxy:
             pass
 
         os.mkdir(self.key_dir)
-        for cmd in cmds:
+        for cmd in cmds[1:]:
             try:
                 self._process_cmd(cmd)
             except Exception:
@@ -236,6 +239,7 @@ class Proxy:
                 raise
 
     def _connect(self, rpc_path, timeout=5 * 60):
+        self.rpc_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         # It may take a while for SPDK to come up, specially if
         # we're allocating huge pages, so retry the connection
         # a bit to make up for that.
@@ -251,11 +255,15 @@ class Proxy:
         fname = os.path.join(wdir, 'local.json')
         try:
             self.local_file = open(fname, 'r+b')
-        except FileNotFoundError:
+            obj = json.load(self.local_file)
+        except (FileNotFoundError, json.JSONDecodeError) as exc:
+            if (isinstance(exc, json.JSONDecodeError) and
+                    os.path.getsize(fname) > 0):
+                raise
+
             self.local_file = open(fname, 'w+b')
             return {'version': radosmap.VERSION, 'clusters': []}
 
-        obj = json.load(self.local_file)
         for elem in obj.get('clusters', ()):
             self.msgloop(self.rpc.bdev_rbd_register_cluster(
                 name=elem['name'], user_id=elem['user'],
@@ -267,6 +275,14 @@ class Proxy:
     def _prepare_cmds(self, config, map_cls):
         self.gmapper = map_cls(config['pool'], logger)
         yield ProxyCommand(self.rpc.nvmf_create_transport(trtype='tcp'))
+
+        xaddr = utils.get_external_addr()
+        yield ProxyCommand(self.rpc.nvmf_subsystem_add_listener(
+            nqn=NQN_DISCOVERY,
+            listen_address=dict(trtype='tcp', traddr=xaddr,
+                                adrfam=utils.get_adrfam(xaddr)[1],
+                                trsvcid=str(config['discovery-port']))))
+
         if not self.local_state.get('clusters'):
             return
 
@@ -278,9 +294,13 @@ class Proxy:
             return
 
         rpc = self.rpc
+        empty = {}
+
         for nqn, elem in subsys.items():
-            units = elem.get('units', ())
-            if self.node_id not in units:
+            units = elem.get('units', empty)
+            this_unit = units.get(self.node_id)
+
+            if this_unit is None:
                 continue
 
             bdev_name = elem['name']
@@ -288,7 +308,7 @@ class Proxy:
 
             msg = {'nqn': nqn, 'pool_name': bdev_info['pool'],
                    'rbd_name': bdev_info['image'],
-                   'addr': units[self.node_id][0]}
+                   'addr': this_unit[0], 'port': this_unit[1]}
             yield ProxyCreateEndpoint(msg, bdev_name, cluster['name'])
 
             del units[self.node_id]

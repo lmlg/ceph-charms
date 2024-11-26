@@ -20,16 +20,26 @@ import select
 
 
 class MockSPDK:
-    def __init__(self, sock):
+    def __init__(self, sock, pre_cmds=()):
         new_sock, _ = sock.accept()
         sock.close()
         self.sock = new_sock
         self.logger = logging.getLogger('spdk')
+        self._init_vars()
+
+        for cmd in pre_cmds:
+            try:
+                getattr(self, cmd[0])(**cmd[1])
+            except Exception:
+                pass
+
+    def _init_vars(self):
         self.rbds = {}
         self.bdevs = {}
         self.clusters = set()
         self.nvmf_subsys = {}
         self.keys = {}
+        self.transports = set()
         self.nvmf_create_subsystem(nqn='nqn.2014-08.org.nvmexpress.discovery')
 
     @staticmethod
@@ -43,8 +53,10 @@ class MockSPDK:
                 return False
         return True
 
-    def nvmf_create_transport(self, **kwargs):
-        pass
+    def nvmf_create_transport(self, trtype):
+        if trtype in self.transports:
+            raise ValueError('transport already created')
+        self.transports.add(trtype)
 
     def nvmf_create_subsystem(self, **kwargs):
         nqn = kwargs['nqn']
@@ -139,6 +151,9 @@ class MockSPDK:
 
     def keyring_file_remove_key(self, name, **kwargs):
         del self.keys[name]
+
+    def spdk_kill_instance(self, **kwargs):
+        self._init_vars()
 
     def loop(self, timeout=None):
         rd, _, _ = select.select([self.sock], [], [], timeout)
